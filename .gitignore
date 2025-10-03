@@ -1,0 +1,80 @@
+# ------------------------
+# Node/Nuxt build outputs
+# ------------------------
+.output
+.data
+.nuxt
+.nitro
+.cache
+dist
+
+# Node dependencies
+node_modules/
+
+# ------------------------
+# Logs
+# ------------------------
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Vault audit logs
+ops/vault/logs/
+vault_audit.log
+
+# ------------------------
+# Vault sensitive files
+# ------------------------
+# Init output (contains unseal keys + root token)
+ops/INIT.out
+
+# Vault license files
+ops/vault/**/*.hclic
+
+# Raft & DB state files
+ops/vault/**/raft/
+ops/vault/**/vault.db
+ops/vault/**/raft.db
+
+# ------------------------
+# Local env files
+# ------------------------
+.env
+.env.*
+!.env.example
+
+# ------------------------
+# Temporary / misc
+# ------------------------
+*.tmp
+*.temp
+.DS_Store
+Thumbs.db
+.fleet/
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# ------------------------
+# Package locks (optional)
+# ------------------------
+package-lock.json
+yarn.lock
+
+# ------------------------
+# Coverage / test output
+# ------------------------
+coverage/
+.nyc_output/
+.jest/
+*.test.js.snap
+*.test.ts.snap
+
+# ------------------------
+# Git hooks
+# ------------------------
+.husky/
+.hooks/
