@@ -1,0 +1,68 @@
+services:
+
+  vault-1:
+    image: hashicorp/vault-enterprise:latest
+    container_name: vault_enterprise_1
+    hostname: vault-1
+    cap_add: [ "IPC_LOCK" ]
+    environment:
+      VAULT_LOG_LEVEL: info
+    ports:
+      - "18200:8200"
+      - "18201:8201"
+    volumes:
+      - ./ops/vault/node-1/config:/vault/config
+      - ./ops/vault/node-1/data:/vault/data
+      - ./ops/vault/node-1/logs:/vault/logs
+    entrypoint: ["vault"]
+    command: ["server", "-config=/vault/config/config.hcl"]
+    networks: [ vault_chronicles ]
+    restart: unless-stopped
+
+  vault-2:
+    image: hashicorp/vault-enterprise:latest
+    container_name: vault_enterprise_2
+    hostname: vault-2
+    cap_add: [ "IPC_LOCK" ]
+    environment:
+      VAULT_LOG_LEVEL: info
+    ports:
+      - "18210:8200"
+      - "18211:8201"
+    volumes:
+      - ./ops/vault/node-2/config:/vault/config
+      - ./ops/vault/node-2/data:/vault/data
+      - ./ops/vault/node-2/logs:/vault/logs
+    depends_on: [ vault-1 ]
+    entrypoint: ["vault"]
+    command: ["server", "-config=/vault/config/config.hcl"]
+    networks:
+      vault_chronicles:
+        aliases: [ vault-1 ]
+    restart: unless-stopped
+
+  vault-3:
+    image: hashicorp/vault-enterprise:latest
+    container_name: vault_enterprise_3
+    hostname: vault-3
+    cap_add: [ "IPC_LOCK" ]
+    environment:
+      VAULT_LOG_LEVEL: info
+    ports:
+      - "18220:8200"
+      - "18221:8201"
+    volumes:
+      - ./ops/vault/node-3/config:/vault/config
+      - ./ops/vault/node-3/data:/vault/data
+      - ./ops/vault/node-3/logs:/vault/logs
+    depends_on: [ vault-1 ]
+    entrypoint: ["vault"]
+    command: ["server", "-config=/vault/config/config.hcl"]
+    networks:
+      vault_chronicles:
+        aliases: [ vault-1 ]
+    restart: unless-stopped
+
+networks:
+  vault_chronicles:
+    driver: bridge

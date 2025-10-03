@@ -1,0 +1,12 @@
+# Exclude backups folder
+node_modules/
+backups/
+tmp/
+
+# Other common exclusions
+.git
+__pycache__
+*.pyc
+*.pyo
+.env
+*.log
