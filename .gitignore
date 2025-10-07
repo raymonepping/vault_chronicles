@@ -29,6 +29,9 @@ vault_audit.log
 # ------------------------
 # Init output (contains unseal keys + root token)
 ops/INIT.out
+ops/INIT.*.out
+config.json
+transit.token
 
 # Vault license files
 ops/vault/**/*.hclic
