@@ -14,6 +14,7 @@ services:
       - ./ops/vault/node-1/config:/vault/config
       - ./ops/vault/node-1/data:/vault/data
       - ./ops/vault/node-1/logs:/vault/logs
+      - ./ops/vault/transit.token:/vault/config/transit.token:ro # for auto-unseal
     entrypoint: ["vault"]
     command: ["server", "-config=/vault/config/config.hcl"]
     networks: [ vault_chronicles ]
@@ -33,6 +34,7 @@ services:
       - ./ops/vault/node-2/config:/vault/config
       - ./ops/vault/node-2/data:/vault/data
       - ./ops/vault/node-2/logs:/vault/logs
+      - ./ops/vault/transit.token:/vault/config/transit.token:ro # for auto-unseal
     depends_on: [ vault-1 ]
     entrypoint: ["vault"]
     command: ["server", "-config=/vault/config/config.hcl"]
@@ -55,12 +57,53 @@ services:
       - ./ops/vault/node-3/config:/vault/config
       - ./ops/vault/node-3/data:/vault/data
       - ./ops/vault/node-3/logs:/vault/logs
+      - ./ops/vault/transit.token:/vault/config/transit.token:ro # for auto-unseal      
     depends_on: [ vault-1 ]
     entrypoint: ["vault"]
     command: ["server", "-config=/vault/config/config.hcl"]
     networks:
       vault_chronicles:
         aliases: [ vault-1 ]
+    restart: unless-stopped
+
+  vault-sec-1:
+    image: hashicorp/vault-enterprise:latest
+    container_name: vault_enterprise_sec_1
+    hostname: vault-sec-1
+    cap_add: [ "IPC_LOCK" ]
+    environment:
+      VAULT_LOG_LEVEL: info
+    ports:
+      - "18300:8200"
+      - "18301:8201"
+    volumes:
+      - ./ops/vault/sec-1/config:/vault/config
+      - ./ops/vault/sec-1/data:/vault/data
+      - ./ops/vault/sec-1/logs:/vault/logs
+      - ./ops/vault/transit.token:/vault/config/transit.token:ro # for auto-unseal
+    entrypoint: ["vault"]
+    command: ["server", "-config=/vault/config/config.hcl"]
+    networks: [ vault_chronicles ]
+    restart: unless-stopped
+
+  vault-sec-2:
+    image: hashicorp/vault-enterprise:latest
+    container_name: vault_enterprise_sec_2
+    hostname: vault-sec-2
+    cap_add: [ "IPC_LOCK" ]
+    environment:
+      VAULT_LOG_LEVEL: info
+    ports:
+      - "18400:8200"
+      - "18401:8201"
+    volumes:
+      - ./ops/vault/sec-2/config:/vault/config
+      - ./ops/vault/sec-2/data:/vault/data
+      - ./ops/vault/sec-2/logs:/vault/logs
+      - ./ops/vault/transit.token:/vault/config/transit.token:ro # for auto-unseal
+    entrypoint: ["vault"]
+    command: ["server", "-config=/vault/config/config.hcl"]
+    networks: [ vault_chronicles ]
     restart: unless-stopped
 
 networks:
