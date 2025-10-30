@@ -44,6 +44,8 @@ FPE_ENCODED=""
 FPE_DECODED=""
 
 # Flags
+QUIET=false
+REDACT_TOKEN=false
 CLEAN_ONLY=false
 FRESH=false
 JSON_OUT=false
@@ -52,8 +54,30 @@ NO_TRANSIT=false
 NAMESPACE_ARG=""
 
 # ---- UI helpers ----
-ok()   { echo "${check_mark} $*"; }
-info() { echo "${compass}  $*"; }
+ok() {
+  # Always show in normal mode.
+  if ! "$QUIET"; then
+    echo "✅ $*"
+    return
+  fi
+  # In --quiet, only show key result lines:
+  case "$*" in
+    Ciphertext:*|Decrypted\ plaintext:*|Masked\ value:*|FPE\ encoded:*|FPE\ decoded:*|All\ done!*|Enterprise\ Transform\ demo\ complete.*)
+      echo "✅ $*"
+      ;;
+    *)
+      # suppress non-essential ok lines in quiet mode
+      :
+      ;;
+  esac
+}
+
+info() {
+  if ! "$QUIET"; then
+    echo "🧭  $*"
+  fi
+}
+
 warn() { echo "${warning} $*"; }
 err()  { echo "❌ $*" >&2; }
 
@@ -94,8 +118,10 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --clean) CLEAN_ONLY=true; shift ;;
     --fresh) FRESH=true; shift ;;
+    --quiet) QUIET=true; shift ;;
     --json) JSON_OUT=true; shift ;;
     --show-curl) SHOW_CURL=true; shift ;;
+    --redact-token) REDACT_TOKEN=true; shift ;;
     --no-transit) NO_TRANSIT=true; shift ;;
     --namespace) NAMESPACE_ARG="$2"; shift 2 ;;
     --mode) TRANSFORM_MODE="$2"; shift 2 ;;
@@ -142,18 +168,22 @@ selected_transformation_name() {
 
 # Pretty curl echo (does not execute; for slides)
 echo_curl() {
-  # $1 = METHOD, $2 = PATH (no leading /v1/), $3 = JSON payload (optional)
   if "$SHOW_CURL"; then
     local method="$1"; local path="$2"; local data="${3:-}"
     local nsHeader=""
     if [[ -n "${VAULT_NAMESPACE:-}" ]]; then
       nsHeader='-H "X-Vault-Namespace: '"$VAULT_NAMESPACE"'" '
     fi
-    if [[ -n "$data" ]]; then
-      echo " ${arrow} command curl -X $method \"${VAULT_ADDR}/v1/${path}\" -H \"X-Vault-Token: \$VAULT_TOKEN\" ${nsHeader}-H \"Content-Type: application/json\" -d '$data'"
-    else
-      echo " ${arrow} curl -X $method \"${VAULT_ADDR}/v1/${path}\" -H \"X-Vault-Token: \$VAULT_TOKEN\" ${nsHeader}"
+    # redact token if requested (echo only; actual calls still use command curl)
+    local tokenHeader='-H "X-Vault-Token: $VAULT_TOKEN" '
+    if "$REDACT_TOKEN"; then
+      tokenHeader='-H "X-Vault-Token: ********" '
     fi
+    local pretty="curl -X $method \"${VAULT_ADDR}/v1/${path}\" ${tokenHeader}${nsHeader}-H \"Content-Type: application/json\""
+    if [[ -n "$data" ]]; then
+      pretty+=" -d '$data'"
+    fi
+    echo " ${arrow} ${pretty}"
   fi
 }
 
@@ -366,7 +396,9 @@ emit_json_summary() {
       masked_output: (if $mode == "masking" then $masked else null end),
       fpe_encoded: (if $mode == "fpe" then $fpe_encoded else null end),
       fpe_decoded: (if $mode == "fpe" then $fpe_decoded else null end)
-    } | with_entries(select(.value != null))'
+    }
+    | with_entries(select(.value != null))
+    | with_entries(select(.value != ""))'
 }
 
 # ---- Execute ----
