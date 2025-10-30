@@ -23,6 +23,7 @@ yarn-error.log*
 # Vault audit logs
 ops/vault/logs/
 vault_audit.log
+.vault-demo/*
 
 # ------------------------
 # Vault sensitive files
