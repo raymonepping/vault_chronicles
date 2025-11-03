@@ -44,42 +44,67 @@ FPE_ENCODED=""
 FPE_DECODED=""
 
 # Flags
+RESULTS_ONLY=false
 QUIET=false
 REDACT_TOKEN=false
 CLEAN_ONLY=false
 FRESH=false
 JSON_OUT=false
+JSON_ONLY=false
 SHOW_CURL=false
 NO_TRANSIT=false
 NAMESPACE_ARG=""
 
-# ---- UI helpers ----
+# ---- UI helpers (results-only safe under set -e) ----
+_is_result_line() {
+  # Return 0 if it's a result line, 1 otherwise (explicit for clarity)
+  if [[ "$1" =~ ^(Ciphertext:|Decrypted plaintext:|Masked value:|FPE encoded:|FPE decoded:) ]]; then
+    return 0
+  else
+    return 1
+  fi
+}
+
 ok() {
-  # Always show in normal mode.
-  if ! "$QUIET"; then
-    echo "✅ $*"
+  local msg="$*"
+  if ${QUIET:-false}; then
+    if ${RESULTS_ONLY:-false}; then
+      if _is_result_line "$msg"; then
+        echo "✅ $msg"
+      fi
+      return
+    fi
+    echo "✅ $msg"
     return
   fi
-  # In --quiet, only show key result lines:
-  case "$*" in
-    Ciphertext:*|Decrypted\ plaintext:*|Masked\ value:*|FPE\ encoded:*|FPE\ decoded:*|All\ done!*|Enterprise\ Transform\ demo\ complete.*)
-      echo "✅ $*"
-      ;;
-    *)
-      # suppress non-essential ok lines in quiet mode
-      :
-      ;;
-  esac
+  echo "✅ $msg"
 }
 
 info() {
-  if ! "$QUIET"; then
-    echo "🧭  $*"
+  local msg="$*"
+  if ${QUIET:-false}; then
+    if ! ${RESULTS_ONLY:-false}; then
+      echo "🧭  $msg"
+    fi
+    return
   fi
+  echo "🧭  $msg"
 }
 
-warn() { echo "${warning} $*"; }
-err()  { echo "❌ $*" >&2; }
+warn() {
+  local msg="$*"
+  if ${QUIET:-false}; then
+    if ! ${RESULTS_ONLY:-false}; then
+      echo "⚠️ $msg"
+    fi
+    return
+  fi
+  echo "⚠️ $msg"
+}
+
+err() {
+  echo "❌ $*" >&2
+}
 
 need() { command -v "$1" >/dev/null 2>&1 || { err "Missing dependency: $1"; exit 1; }; }
 
@@ -120,6 +145,7 @@ while [[ $# -gt 0 ]]; do
     --fresh) FRESH=true; shift ;;
     --quiet) QUIET=true; shift ;;
     --json) JSON_OUT=true; shift ;;
+    --json-only) JSON_ONLY=true; JSON_OUT=true; shift ;;
     --show-curl) SHOW_CURL=true; shift ;;
     --redact-token) REDACT_TOKEN=true; shift ;;
     --no-transit) NO_TRANSIT=true; shift ;;
@@ -129,6 +155,7 @@ while [[ $# -gt 0 ]]; do
     --cc) CREDIT_CARD_NUMBER="$2"; shift 2 ;;
     --transit-path) TRANSIT_PATH="$2"; shift 2 ;;
     --transform-path) TRANSFORM_PATH="$2"; shift 2 ;;
+    --results-only) RESULTS_ONLY=true; shift ;;
     -h|--help) usage; exit 0 ;;
     *) err "Unknown argument: $1"; usage; exit 1 ;;
   esac
@@ -402,6 +429,12 @@ emit_json_summary() {
 }
 
 # ---- Execute ----
+# After run_demo():
+if "$JSON_ONLY"; then
+  emit_json_summary
+  exit 0
+fi
+
 if "$CLEAN_ONLY"; then
   cleanup
   exit 0
