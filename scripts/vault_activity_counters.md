@@ -1,6 +1,6 @@
-# `vault_activity_counters.sh`
-
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](../LICENSE.md)
+
+# `vault_activity_counters.sh`
 
 A smart, human-friendly wrapper around:
 
