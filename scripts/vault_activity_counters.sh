@@ -49,48 +49,53 @@ fi
 
 print_help() {
   cat <<EOF
-vault_activity_counters.sh v${VERSION}
+${BOLD}vault_activity_counters.sh v${VERSION}${RESET}
 
-Query Vault sys/internal/counters/activity and extract usage counters.
+${BLUE}Query Vault sys/internal/counters/activity and extract usage counters.${RESET}
 
-Required (one of):
-  EITHER:
-    --start   RFC3339 timestamp (UTC) or date-only.
+${YELLOW}Required (one of):${RESET}
+  ${BOLD}EITHER:${RESET}
+    ${GREEN}--start${RESET}   RFC3339 timestamp (UTC) or date-only.
               Examples:
                 2025-10-01T00:00:00Z
                 2025-10-01    (interpreted as 2025-10-01T00:00:00Z)
-    --end     RFC3339 timestamp (UTC) or date-only.
+    ${GREEN}--end${RESET}     RFC3339 timestamp (UTC) or date-only.
               Examples:
                 2025-11-01T00:00:00Z
                 2025-11-01    (interpreted as 2025-11-01T00:00:00Z)
-  OR one of the shortcuts (mutually exclusive and cannot be combined with --start/--end):
-    --last-24h     Last 24 hours until now (UTC)
-    --last-7d      Last 7 days until now (UTC)
-    --last-month   Previous full calendar month (UTC), e.g. 2025-10-01T00:00:00Z
-                   through 2025-11-01T00:00:00Z if run in November 2025
 
-Optional:
-  --mode         1|2|3|4|5 or total|non-entity|secret-syncs|summary|env
+  ${BOLD}OR one shortcut (mutually exclusive with --start/--end):${RESET}
+    ${GREEN}--last-24h${RESET}        Last 24 hours until now (UTC)
+    ${GREEN}--last-7d${RESET}         Last 7 days until now (UTC)
+    ${GREEN}--last-14d${RESET}        Last 14 days until now (UTC)
+    ${GREEN}--last-30d${RESET}        Last 30 days until now (UTC)
+    ${GREEN}--last-month${RESET}      Previous full calendar month (UTC)
+    ${GREEN}--last-year${RESET}       Last 12 months (rolling, UTC)
+    ${GREEN}--last-days N${RESET}     Last N days (rolling, UTC)
+    ${GREEN}--last-months N${RESET}   Last N months (rolling, UTC)
+
+${YELLOW}Optional:${RESET}
+  ${GREEN}--mode${RESET}         1|2|3|4|5 or total|non-entity|secret-syncs|summary|env
                  1 / total        -> full .data.total object
                  2 / non-entity   -> .data.total.non_entity_clients
                  3 / secret-syncs -> .data.total.secret_syncs
                  4 / summary      -> { non_entity_clients, secret_syncs }
                  5 / env          -> non_entity_clients=.. and secret_syncs=..
                                       (format flag is ignored in this mode)
-  --format       json|csv|md (default: json)
-  --output-file  Path to write the result to (in addition to stdout)
-  --help         Show this help
-  --version      Show version
+  ${GREEN}--format${RESET}       json|csv|md (default: json)
+  ${GREEN}--output-file${RESET}  Path to write the result to (in addition to stdout)
+  ${GREEN}--help${RESET}         Show this help
+  ${GREEN}--version${RESET}      Show version
 
-Examples:
+${YELLOW}Examples:${RESET}
   JSON full total block for explicit range:
-    ./vault_activity_counters.sh --start 2025-10-01 --end 2025-11-01 --mode total
+    ${BLUE}./vault_activity_counters.sh --start 2025-10-01 --end 2025-11-01 --mode total${RESET}
 
   CSV summary (non_entity_clients, secret_syncs) for last 7 days:
-    ./vault_activity_counters.sh --last-7d --mode summary --format csv --output-file summary.csv
+    ${BLUE}./vault_activity_counters.sh --last-7d --mode summary --format csv --output-file summary.csv${RESET}
 
   Markdown table, previous full month:
-    ./vault_activity_counters.sh --last-month --mode total --format md --output-file activity.md
+    ${BLUE}./vault_activity_counters.sh --last-month --mode total --format md --output-file activity.md${RESET}
 EOF
 }
 
@@ -101,7 +106,7 @@ FORMAT="json"
 RANGE_SHORTCUT=""   # last-24h | last-7d | last-month
 OUTPUT_FILE=""
 
-# --- Arg parsing --------------------------------------------------------------
+# --- Argument parsing ---------------------------------------------------------
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -113,9 +118,19 @@ while [[ $# -gt 0 ]]; do
       END_TIME="${2:-}"
       shift 2
       ;;
-    --last-24h|--last-7d|--last-month)
+    --last-24h|--last-7d|--last-14d|--last-30d|--last-month|--last-year)
       RANGE_SHORTCUT="${1#--}"
       shift 1
+      ;;
+    --last-days)
+      RANGE_SHORTCUT="last-days"
+      LAST_DAYS="${2:?Missing value for --last-days}"
+      shift 2
+      ;;
+    --last-months)
+      RANGE_SHORTCUT="last-months"
+      LAST_MONTHS="${2:?Missing value for --last-months}"
+      shift 2
       ;;
     --mode)
       MODE="${2:-}"
@@ -145,28 +160,26 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-# --- Time selection validation -------------------------------------------------
+# --- Validation ---------------------------------------------------------------
 
 if [[ -n "$RANGE_SHORTCUT" && ( -n "$START_TIME" || -n "$END_TIME" ) ]]; then
-  log_err "--last-24h/--last-7d/--last-month cannot be combined with --start/--end."
+  log_err "Shortcut ranges cannot be combined with --start/--end."
   exit 1
 fi
 
-# Default to last-month if nothing specified at all
 if [[ -z "$RANGE_SHORTCUT" && -z "$START_TIME" && -z "$END_TIME" ]]; then
   RANGE_SHORTCUT="last-month"
 fi
 
 if [[ -z "$RANGE_SHORTCUT" && ( -z "$START_TIME" || -z "$END_TIME" ) ]]; then
-  log_err "Either --start/--end or one of --last-24h/--last-7d/--last-month is required."
-  echo "Use --help for usage." >&2
+  log_err "Either provide --start/--end or a shortcut range."
   exit 1
 fi
 
 case "$FORMAT" in
   json|csv|md) ;;
   *)
-    log_err "Invalid --format '$FORMAT'. Use json, csv, or md."
+    log_err "Invalid format '$FORMAT'."
     exit 1
     ;;
 esac
@@ -198,42 +211,46 @@ if date -v1d '+%Y-%m-%d' >/dev/null 2>&1; then
 fi
 
 compute_range_shortcut() {
-  local shortcut="$1"
+  local s="$1"
   local start=""
   local end=""
 
   if $is_bsd_date; then
-    # macOS / BSD date
-    case "$shortcut" in
-      last-24h)
+    case "$s" in
+      last-24h)  end="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"; start="$(date -u -v-24H '+%Y-%m-%dT%H:%M:%SZ')" ;;
+      last-7d)   end="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"; start="$(date -u -v-7d  '+%Y-%m-%dT%H:%M:%SZ')" ;;
+      last-14d)  end="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"; start="$(date -u -v-14d '+%Y-%m-%dT%H:%M:%SZ')" ;;
+      last-30d)  end="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"; start="$(date -u -v-30d '+%Y-%m-%dT%H:%M:%SZ')" ;;
+      last-month) start="$(date -u -v1d -v-1m '+%Y-%m-%dT00:00:00Z')"; end="$(date -u -v1d '+%Y-%m-%dT00:00:00Z')" ;;
+      last-year) end="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"; start="$(date -u -v-1y '+%Y-%m-%dT%H:%M:%SZ')" ;;
+      last-days)
         end="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
-        start="$(date -u -v-24H '+%Y-%m-%dT%H:%M:%SZ')"
+        start="$(date -u -v-"${LAST_DAYS}"d '+%Y-%m-%dT%H:%M:%SZ')"
         ;;
-      last-7d)
+      last-months)
         end="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
-        start="$(date -u -v-7d '+%Y-%m-%dT%H:%M:%SZ')"
-        ;;
-      last-month)
-        # Previous full calendar month
-        start="$(date -u -v1d -v-1m '+%Y-%m-%dT00:00:00Z')"
-        end="$(date -u -v1d '+%Y-%m-%dT00:00:00Z')"
+        start="$(date -u -v-"${LAST_MONTHS}"m '+%Y-%m-%dT%H:%M:%SZ')"
         ;;
     esac
+
   else
-    # GNU date (Linux)
-    case "$shortcut" in
-      last-24h)
-        end="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
-        start="$(date -u -d '24 hours ago' '+%Y-%m-%dT%H:%M:%SZ')"
-        ;;
-      last-7d)
-        end="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
-        start="$(date -u -d '7 days ago' '+%Y-%m-%dT%H:%M:%SZ')"
-        ;;
+    case "$s" in
+      last-24h)  end="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"; start="$(date -u -d '24 hours ago' '+%Y-%m-%dT%H:%M:%SZ')" ;;
+      last-7d)   end="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"; start="$(date -u -d '7 days ago'  '+%Y-%m-%dT%H:%M:%SZ')" ;;
+      last-14d)  end="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"; start="$(date -u -d '14 days ago' '+%Y-%m-%dT%H:%M:%SZ')" ;;
+      last-30d)  end="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"; start="$(date -u -d '30 days ago' '+%Y-%m-%dT%H:%M:%SZ')" ;;
       last-month)
-        # Previous full calendar month: from first day of previous month to first day of current month
         end="$(date -u -d "$(date -u +%Y-%m-01)" '+%Y-%m-%dT00:00:00Z')"
         start="$(date -u -d "$end -1 month" '+%Y-%m-%dT00:00:00Z')"
+        ;;
+      last-year) end="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"; start="$(date -u -d '1 year ago' '+%Y-%m-%dT%H:%M:%SZ')" ;;
+      last-days)
+        end="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+        start="$(date -u -d "${LAST_DAYS} days ago" '+%Y-%m-%dT%H:%M:%SZ')"
+        ;;
+      last-months)
+        end="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+        start="$(date -u -d "${LAST_MONTHS} months ago" '+%Y-%m-%dT%H:%M:%SZ')"
         ;;
     esac
   fi
@@ -244,11 +261,7 @@ compute_range_shortcut() {
 # Allow date-only input and convert to RFC3339 UTC at midnight
 normalize_timestamp() {
   local ts="$1"
-  if [[ "$ts" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
-    echo "${ts}T00:00:00Z"
-  else
-    echo "$ts"
-  fi
+  [[ "$ts" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] && echo "${ts}T00:00:00Z" || echo "$ts"
 }
 
 if [[ -n "$RANGE_SHORTCUT" ]]; then
