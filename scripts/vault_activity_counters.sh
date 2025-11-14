@@ -1,46 +1,9 @@
 #!/usr/bin/env bash
+
 # ------------------------------------------------------------------------------
-# vault_activity_counters.sh
-# Vault Chronicles Toolkit — Vault Activity Telemetry Wrapper
-#
-# License: MIT
-# Copyright (c) 2025 Raymon Epping
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the “Software”), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so.
-#
-# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND.
-# ------------------------------------------------------------------------------
-#
-# Description:
-#   A smart wrapper around:
-#     vault read sys/internal/counters/activity
-#   Extracts clean governance metrics with:
-#     - date shortcuts (--last-24h, --last-7d, --last-month)
-#     - multiple modes (total, summary, env, etc.)
-#     - multiple formats (json, csv, md)
-#     - file output (--output-file)
-#     - colored/logged status messages (stderr-safe)
-#
-# Requirements:
-#   - vault CLI
-#   - jq
-#
-# Usage examples:
-#   ./vault_activity_counters.sh --last-month --mode total
-#   ./vault_activity_counters.sh --start 2025-10-01 --end 2025-11-01 --mode summary
-#   ./vault_activity_counters.sh --last-7d --mode summary --format csv --output-file activity.csv
-#
-# Environment:
-#   Expects a .env file in the same directory with:
-#     VAULT_ADDR
-#     VAULT_TOKEN
-#   Optionally:
-#     VAULT_NAMESPACE
+# vault_activity_counters.sh — Vault Chronicles Toolkit (MIT)
+# Clean wrapper for sys/internal/counters/activity with date shortcuts,
+# multiple output modes (json/csv/md), and optional file output.
 # ------------------------------------------------------------------------------
 
 set -euo pipefail
