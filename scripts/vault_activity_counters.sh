@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ------------------------------------------------------------------------------
 # vault_activity_counters.sh
-# Part of the Vault Chronicles Toolkit
+# Vault Chronicles Toolkit — Vault Activity Telemetry Wrapper
 #
 # License: MIT
 # Copyright (c) 2025 Raymon Epping
@@ -16,31 +16,32 @@
 # THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND.
 # ------------------------------------------------------------------------------
 #
-# vault_activity_counters.sh
-# Query Vault sys/internal/counters/activity and extract summary stats.
+# Description:
+#   A smart wrapper around:
+#     vault read sys/internal/counters/activity
+#   Extracts clean governance metrics with:
+#     - date shortcuts (--last-24h, --last-7d, --last-month)
+#     - multiple modes (total, summary, env, etc.)
+#     - multiple formats (json, csv, md)
+#     - file output (--output-file)
+#     - colored/logged status messages (stderr-safe)
 #
 # Requirements:
-#   - vault
+#   - vault CLI
 #   - jq
 #
 # Usage examples:
-#   ./vault_activity_counters.sh --start 2025-10-01 --end 2025-11-01
 #   ./vault_activity_counters.sh --last-month --mode total
+#   ./vault_activity_counters.sh --start 2025-10-01 --end 2025-11-01 --mode summary
 #   ./vault_activity_counters.sh --last-7d --mode summary --format csv --output-file activity.csv
 #
-# Modes:
-#   1|total         -> full .data.total object
-#   2|non-entity    -> .data.total.non_entity_clients
-#   3|secret-syncs  -> .data.total.secret_syncs
-#   4|summary       -> {non_entity_clients, secret_syncs}
-#   5|env           -> non_entity_clients=.. / secret_syncs=.. (format ignored)
-#
-# Formats:
-#   json (default), csv, md
-#
 # Environment:
-#   Reads .env in the same directory as this script and exports variables from it.
-#   Expected: VAULT_ADDR, VAULT_TOKEN (and optionally VAULT_NAMESPACE).
+#   Expects a .env file in the same directory with:
+#     VAULT_ADDR
+#     VAULT_TOKEN
+#   Optionally:
+#     VAULT_NAMESPACE
+# ------------------------------------------------------------------------------
 
 set -euo pipefail
 
