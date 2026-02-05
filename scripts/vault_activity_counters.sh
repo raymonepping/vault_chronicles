@@ -346,30 +346,45 @@ output_secret_syncs_md() {
 }
 
 output_summary_json() {
-  jq -r '{non_entity_clients: .data.total.non_entity_clients, secret_syncs: .data.total.secret_syncs}' <<<"$VAULT_JSON"
+  jq -r '{
+    clients: .data.total.clients,
+    entity_clients: .data.total.entity_clients,
+    distinct_entities: .data.total.distinct_entities,
+    non_entity_clients: .data.total.non_entity_clients,
+    secret_syncs: .data.total.secret_syncs
+  }' <<<"$VAULT_JSON"
 }
 
 output_summary_csv() {
   jq -r '
     {
+      clients: .data.total.clients,
+      entity_clients: .data.total.entity_clients,
+      distinct_entities: .data.total.distinct_entities,
       non_entity_clients: .data.total.non_entity_clients,
       secret_syncs: .data.total.secret_syncs
     } as $s
-    | "non_entity_clients,secret_syncs",
-      "\($s.non_entity_clients),\($s.secret_syncs)"
+    | "clients,entity_clients,distinct_entities,non_entity_clients,secret_syncs",
+      "\($s.clients),\($s.entity_clients),\($s.distinct_entities),\($s.non_entity_clients),\($s.secret_syncs)"
   ' <<<"$VAULT_JSON"
 }
 
 output_summary_md() {
   jq -r '
     {
+      clients: .data.total.clients,
+      entity_clients: .data.total.entity_clients,
+      distinct_entities: .data.total.distinct_entities,
       non_entity_clients: .data.total.non_entity_clients,
       secret_syncs: .data.total.secret_syncs
     } as $s
-    | "| metric              | value |",
-      "|---------------------|-------|",
-      "| non_entity_clients | \($s.non_entity_clients) |",
-      "| secret_syncs       | \($s.secret_syncs) |"
+    | "| metric            | value |",
+      "|-------------------|-------|",
+      "| clients           | \($s.clients) |",
+      "| entity_clients    | \($s.entity_clients) |",
+      "| distinct_entities | \($s.distinct_entities) |",
+      "| non_entity_clients| \($s.non_entity_clients) |",
+      "| secret_syncs      | \($s.secret_syncs) |"
   ' <<<"$VAULT_JSON"
 }
 
