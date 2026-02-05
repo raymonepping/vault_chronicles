@@ -300,8 +300,9 @@ output_total_json() {
 output_total_csv() {
   jq -r '
     .data.total as $t
-    | [ $t | keys_unsorted[] ]       | @csv,
-      [ $t[ keys_unsorted[] ] ]      | @csv
+    | ($t | keys_unsorted) as $k
+    | ($k | @csv),
+      ($k | map($t[.]) | @csv)
   ' <<<"$VAULT_JSON"
 }
 
